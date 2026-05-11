@@ -1,0 +1,10 @@
+Installation
+
+cd imagecaption
+pip install -r requirements.txt
+
+Run Web Application
+
+streamlit run app.py
+
+streamlit run app2.py
