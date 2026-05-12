@@ -1,7 +1,28 @@
 import streamlit as st
 import torch
+import sys
 import os
 from PIL import Image
+
+
+# 1. Add the subfolder to the Python path so app.py can "see" app2.py
+sys.path.append(os.path.join(os.getcwd(), "imagecaption"))
+
+st.sidebar.title("Navigation")
+selection = st.sidebar.radio("Go to", ["Caption Generation", "Voice Generation"])
+
+if selection == "Caption Generation":
+    # --- Put your existing app.py code logic here ---
+    st.title("🖼️ Image Captioning")
+    # [Insert your current app.py model loading and UI code here]
+
+elif selection == "Voice Generation":
+    # --- Run the code from imagecaption/app2.py ---
+    try:
+        import app2
+        # This will execute the code inside your app2.py file
+    except Exception as e:
+        st.error(f"Could not load Voice Generation: {e}")
 
 # Streamlit page config MUST be first
 st.set_page_config(page_title="AI Image Captioning", layout="wide")
