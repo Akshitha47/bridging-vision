@@ -6,62 +6,45 @@ from transformers import BlipProcessor, BlipForConditionalGeneration
 # 1. Page Config (MUST be first)
 st.set_page_config(page_title="AI Image Captioning", layout="wide")
 
-# --- LOGIN LOGIC ---
-def login():
-    st.sidebar.title("🔐 User Login")
-    username = st.sidebar.text_input("Username")
-    password = st.sidebar.text_input("Password", type="password")
-    
-    if st.sidebar.button("Login"):
-        # You can change these credentials for your presentation
-        if username == "admin" and password == "bca2026":
-            st.session_state['logged_in'] = True
-            st.sidebar.success(f"Welcome, {username}!")
-            st.rerun()
-        else:
-            st.sidebar.error("Invalid Username or Password")
-
-# Initialize session state for login
+# --- INITIALIZE SESSION STATE ---
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 
-# Show Login Page if not logged in
-if not st.session_state['logged_in']:
-    st.title("🖼️ Bridging Vision & Language")
-    st.info("Please login from the sidebar to access the AI Image Captioning Tool.")
-    login()
-    st.stop() # Prevents the rest of the code from running
+# --- LOGIN UI FUNCTION ---
+def show_login_page():
+    st.title("🔐 Project Login")
+    st.write("Please enter your credentials to access the AI Image Captioning Tool.")
+    
+    # Using columns to center the login box
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login", use_container_width=True):
+            if username == "admin" and password == "bca2026":
+                st.session_state['logged_in'] = True
+                st.rerun()
+            else:
+                st.error("Invalid credentials. Please try again.")
 
-# --- MAIN APP CODE (Only runs after login) ---
+# --- CHECK AUTHENTICATION ---
+if not st.session_state['logged_in']:
+    show_login_page()
+    st.stop()  # Everything below this line is hidden until logged_in is True
+
+# --- MAIN APP CODE (Only runs if logged_in is True) ---
 st.title("🖼️ AI Image Captioning WebApp")
 st.sidebar.button("Logout", on_click=lambda: st.session_state.update({"logged_in": False}))
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
+# Load model logic
 @st.cache_resource
 def load_model():
     model_id = "Salesforce/blip-image-captioning-base"
-    try:
-        processor = BlipProcessor.from_pretrained(model_id)
-        model = BlipForConditionalGeneration.from_pretrained(model_id)
-        model = model.to(device)
-        return processor, model, True
-    except Exception as e:
-        return None, None, False
+    processor = BlipProcessor.from_pretrained(model_id)
+    model = BlipForConditionalGeneration.from_pretrained(model_id)
+    return processor, model.to("cpu")
 
-processor, model, model_loaded = load_model()
+processor, model = load_model()
+st.success("Authenticated & Model Ready!")
 
-if model_loaded:
-    st.success("✅ Model loaded and Authenticated!")
-    # ... (Your existing image upload and generation logic goes here) ...
-    uploaded_file = st.sidebar.file_uploader("Choose an image...", type=["jpg","jpeg","png"])
-    
-    if uploaded_file:
-        image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="Uploaded Image", width=500)
-        
-        if st.button("Generate Caption"):
-            inputs = processor(image, return_tensors="pt").to(device)
-            out = model.generate(**inputs, max_length=50)
-            caption = processor.decode(out[0], skip_special_tokens=True)
-            st.info(f"**Generated Caption:** {caption}")
+# ... rest of your upload/generation code ...
