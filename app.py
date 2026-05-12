@@ -19,7 +19,7 @@ if selection == "Caption Generation":
 elif selection == "Voice Generation":
     # --- Run the code from imagecaption/app2.py ---
     try:
-        import app2
+        import imagecaption.app2 as app2
         # This will execute the code inside your app2.py file
     except Exception as e:
         st.error(f"Could not load Voice Generation: {e}")
@@ -87,23 +87,26 @@ if model_loaded:
                 with st.spinner("Generating caption..."):
                     try:
                         inputs = processor(image, text_input, return_tensors="pt").to(device)
-                        with torch.no_grad():
-                            out = model.generate(**inputs, max_length=50)
                         caption = processor.decode(out[0], skip_special_tokens=True)
                         st.success("✅ Caption Generated!")
                         st.info(f"Caption: {caption}")
+                        tts = gTTS(text=caption, lang='en')
+                        audio_fp = io.BytesIO()
+                        tts.write_to_fp(audio_fp)
+                        st.audio(audio_fp, format='audio/mp3')
                     except Exception as e:
                         st.error(f"Error generating caption: {str(e)}")
 
             if st.button("📸 Generate Unconditional Caption", use_container_width=True):
                 with st.spinner("Generating caption..."):
                     try:
-                        inputs = processor(image, return_tensors="pt").to(device)
-                        with torch.no_grad():
-                            out = model.generate(**inputs, max_length=50)
                         caption = processor.decode(out[0], skip_special_tokens=True)
                         st.success("✅ Caption Generated!")
                         st.info(f"Caption: {caption}")
+                        tts = gTTS(text=caption, lang='en')
+                        audio_fp = io.BytesIO()
+                        tts.write_to_fp(audio_fp)
+                        st.audio(audio_fp, format='audio/mp3')
                     except Exception as e:
                         st.error(f"Error generating caption: {str(e)}")
 else:
