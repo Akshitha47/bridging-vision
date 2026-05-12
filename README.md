@@ -6,7 +6,7 @@ title: Bridging Vision
 emoji: 📊
 colorFrom: green
 colorTo: purple
-sdk: gradio
+sdk: streamlit
 sdk_version: 6.14.0
 python_version: '3.13'
 app_file: app.py
