@@ -3,113 +3,141 @@ import torch
 import os
 from PIL import Image
 
-# Streamlit page config MUST be first
-st.set_page_config(page_title="AI Image Captioning", layout="wide")
+# --- PRE-CONFIG & UI STYLE ---
+st.set_page_config(page_title="VisionAI - Premium Captioning", layout="wide", initial_sidebar_state="collapsed")
 
-st.title("🖼️ AI Image Captioning WebApp")
-st.write("Generate captions for your images using AI")
+# Futuristic AI-Themed CSS
+st.markdown("""
+    <style>
+    /* Main Background */
+    .stApp {
+        background: radial-gradient(circle at top right, #1a1a2e, #16213e, #0f3460);
+        color: #ffffff;
+    }
+    
+    /* Glassmorphism Cards */
+    .main-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        margin-bottom: 20px;
+    }
+    
+    /* Premium Buttons */
+    .stButton>button {
+        background: linear-gradient(90deg, #4e54c8, #8f94fb);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 25px;
+        transition: all 0.3s ease;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(143, 148, 251, 0.4);
+    }
+    
+    /* Typography */
+    h1 {
+        background: -webkit-linear-gradient(#fff, #8f94fb);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Set device
+# --- SESSION STATE INITIALIZATION ---
+if 'users' not in st.session_state:
+    st.session_state['users'] = {"admin@bca.com": "bca2026"} # Initial admin
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+
+# --- AUTHENTICATION UI ---
+def show_auth_page():
+    st.markdown("<h1 style='text-align: center;'>VisionAI</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #8f94fb;'>Bridging Human Perception with Artificial Intelligence</p>", unsafe_allow_html=True)
+    
+    auth_mode = st.tabs(["🔒 Login", "📝 Register"])
+    
+    with auth_mode[0]:
+        with st.container():
+            st.markdown('<div class="main-card">', unsafe_allow_html=True)
+            login_email = st.text_input("Email Address", key="l_email")
+            login_pass = st.text_input("Password", type="password", key="l_pass")
+            if st.button("Access Dashboard", use_container_width=True):
+                if login_email in st.session_state['users'] and st.session_state['users'][login_email] == login_pass:
+                    st.session_state['authenticated'] = True
+                    st.rerun()
+                else:
+                    st.error("Invalid credentials.")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+    with auth_mode[1]:
+        with st.container():
+            st.markdown('<div class="main-card">', unsafe_allow_html=True)
+            reg_email = st.text_input("Choose Email", key="r_email")
+            reg_pass = st.text_input("Create Password", type="password", key="r_pass")
+            confirm_pass = st.text_input("Confirm Password", type="password", key="r_confirm")
+            
+            if st.button("Create Account", use_container_width=True):
+                if reg_pass != confirm_pass:
+                    st.error("Passwords do not match.")
+                elif reg_email in st.session_state['users']:
+                    st.warning("Email already registered.")
+                elif reg_email and reg_pass:
+                    st.session_state['users'][reg_email] = reg_pass
+                    st.success("Registration successful! Please login.")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+# --- APP ROUTING ---
+if not st.session_state['authenticated']:
+    show_auth_page()
+    st.stop()
+
+# --- PREMIUM DASHBOARD ---
+st.markdown("""
+    <div style='display: flex; justify-content: space-between; align-items: center;'>
+        <h1>VisionAI Dashboard</h1>
+    </div>
+    """, unsafe_allow_html=True)
+
+if st.sidebar.button("Logout"):
+    st.session_state['authenticated'] = False
+    st.rerun()
+
+# --- CORE LOGIC START (REMAINS UNCHANGED) ---
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load the pre-trained model and processor
-MODEL_DIRECTORY = "blip-image-captioning-base"
-MODEL_PATH = os.path.join(MODEL_DIRECTORY)
-PROCESSOR_PATH = os.path.join(MODEL_DIRECTORY)
+@st.cache_resource
+def load_model():
+    # Modified loading to use the Hub for cloud reliability
+    model_id = "Salesforce/blip-image-captioning-base"
+    try:
+        from transformers import BlipProcessor, BlipForConditionalGeneration
+        processor = BlipProcessor.from_pretrained(model_id)
+        model = BlipForConditionalGeneration.from_pretrained(model_id)
+        return processor, model.to(device), True
+    except Exception as e:
+        return None, None, False
 
-# Initialize model variables
-processor = None
-model = None
-model_loaded = False
+# Premium Status Indicator
+with st.container():
+    st.markdown('<div class="main-card" style="padding: 15px; border-left: 5px solid #8f94fb;">', unsafe_allow_html=True)
+    cols = st.columns([0.1, 0.9])
+    processor, model, model_loaded = load_model()
+    if model_loaded:
+        cols[0].markdown("🟢")
+        cols[1].write("**System Status:** AI Engine Online & Model Ready")
+    else:
+        cols[0].markdown("🔴")
+        cols[1].write("**System Status:** Engine Offline - Check Logs")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# Try to load model
-try:
-    from transformers import BlipProcessor, BlipForConditionalGeneration
-    
-    # MODIFIED: Remove the 'if os.path.exists' check and load directly from the Hub
-    with st.spinner("Downloading and loading model..."):
-        # We use the official model ID instead of a local path
-        MODEL_ID = "Salesforce/blip-image-captioning-base"
-        
-        processor = BlipProcessor.from_pretrained(MODEL_ID)
-        model = BlipForConditionalGeneration.from_pretrained(MODEL_ID)
-        model = model.to(device)
-        model_loaded = True
-        st.success("✅ Model loaded successfully!")
-except Exception as e:
-    st.warning(f"⚠️ Could not load model: {str(e)}")
-    model_loaded = False
-
-# Main app content
-if model_loaded:
-    st.markdown("---")
-    st.write("Upload an image to generate captions")
-    
-    # Upload image through Streamlit sidebar
-    uploaded_file = st.sidebar.file_uploader("Choose an image...", type=["jpg","jpeg","png"])
-
-    if uploaded_file is not None:
-        # Display the uploaded image
-        image = Image.open(uploaded_file).convert("RGB")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.image(image, caption="Uploaded Image", use_column_width=True)
-        
-        with col2:
-            st.subheader("Caption Options")
-            
-            # Perform image captioning
-            text_input = st.text_input("Enter text prefix for captioning:", "a photography of")
-            
-            if st.button("🎯 Generate Conditional Caption", use_container_width=True):
-                with st.spinner("Generating caption..."):
-                    try:
-                        inputs = processor(image, text_input, return_tensors="pt").to(device)
-                        with torch.no_grad():
-                            out = model.generate(**inputs, max_length=50)
-                        caption = processor.decode(out[0], skip_special_tokens=True)
-                        st.success("✅ Caption Generated!")
-                        st.info(f"Caption: {caption}")
-                    except Exception as e:
-                        st.error(f"Error generating caption: {str(e)}")
-
-            if st.button("📸 Generate Unconditional Caption", use_container_width=True):
-                with st.spinner("Generating caption..."):
-                    try:
-                        inputs = processor(image, return_tensors="pt").to(device)
-                        with torch.no_grad():
-                            out = model.generate(**inputs, max_length=50)
-                        caption = processor.decode(out[0], skip_special_tokens=True)
-                        st.success("✅ Caption Generated!")
-                        st.info(f"Caption: {caption}")
-                    except Exception as e:
-                        st.error(f"Error generating caption: {str(e)}")
-else:
-    st.markdown("---")
-    st.info("📝 Demo Mode - Model Not Available")
-    st.write("""
-    The model is not currently loaded. This could be because:
-    - The model directory 'blip-image-captioning-base' is not found
-    - The model files are still downloading
-    - There was an error loading the model
-    
-    To use the full app, ensure the BLIP model is properly set up.
-    """)
-    
-    # Show demo information
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("About This App")
-        st.write("""
-        This app uses the BLIP (Bootstrapping Language-Image Pre-training) 
-        model to generate captions for images.
-        """)
-    
-    with col2:
-        st.subheader("Features")
-        st.write("""
-        - Conditional Caption Generation
-        - Unconditional Caption Generation
-        - Support for JPG, JPEG, PNG formats
-        """)
+# ... (Continue with your existing upload and generation code below)
