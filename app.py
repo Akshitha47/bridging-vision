@@ -1,50 +1,115 @@
 import streamlit as st
 import torch
+import os
 from PIL import Image
-from transformers import BlipProcessor, BlipForConditionalGeneration
 
-# 1. Page Config (MUST be first)
+# Streamlit page config MUST be first
 st.set_page_config(page_title="AI Image Captioning", layout="wide")
 
-# --- INITIALIZE SESSION STATE ---
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-# --- LOGIN UI FUNCTION ---
-def show_login_page():
-    st.title("🔐 Project Login")
-    st.write("Please enter your credentials to access the AI Image Captioning Tool.")
-    
-    # Using columns to center the login box
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        if st.button("Login", use_container_width=True):
-            if username == "admin" and password == "bca2026":
-                st.session_state['logged_in'] = True
-                st.rerun()
-            else:
-                st.error("Invalid credentials. Please try again.")
-
-# --- CHECK AUTHENTICATION ---
-if not st.session_state['logged_in']:
-    show_login_page()
-    st.stop()  # Everything below this line is hidden until logged_in is True
-
-# --- MAIN APP CODE (Only runs if logged_in is True) ---
 st.title("🖼️ AI Image Captioning WebApp")
-st.sidebar.button("Logout", on_click=lambda: st.session_state.update({"logged_in": False}))
+st.write("Generate captions for your images using AI")
 
-# Load model logic
-@st.cache_resource
-def load_model():
-    model_id = "Salesforce/blip-image-captioning-base"
-    processor = BlipProcessor.from_pretrained(model_id)
-    model = BlipForConditionalGeneration.from_pretrained(model_id)
-    return processor, model.to("cpu")
+# Set device
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-processor, model = load_model()
-st.success("Authenticated & Model Ready!")
+# Load the pre-trained model and processor
+MODEL_DIRECTORY = "blip-image-captioning-base"
+MODEL_PATH = os.path.join(MODEL_DIRECTORY)
+PROCESSOR_PATH = os.path.join(MODEL_DIRECTORY)
 
-# ... rest of your upload/generation code ...
+# Initialize model variables
+processor = None
+model = None
+model_loaded = False
+
+# Try to load model
+try:
+    from transformers import BlipProcessor, BlipForConditionalGeneration
+    
+    # MODIFIED: Remove the 'if os.path.exists' check and load directly from the Hub
+    with st.spinner("Downloading and loading model..."):
+        # We use the official model ID instead of a local path
+        MODEL_ID = "Salesforce/blip-image-captioning-base"
+        
+        processor = BlipProcessor.from_pretrained(MODEL_ID)
+        model = BlipForConditionalGeneration.from_pretrained(MODEL_ID)
+        model = model.to(device)
+        model_loaded = True
+        st.success("✅ Model loaded successfully!")
+except Exception as e:
+    st.warning(f"⚠️ Could not load model: {str(e)}")
+    model_loaded = False
+
+# Main app content
+if model_loaded:
+    st.markdown("---")
+    st.write("Upload an image to generate captions")
+    
+    # Upload image through Streamlit sidebar
+    uploaded_file = st.sidebar.file_uploader("Choose an image...", type=["jpg","jpeg","png"])
+
+    if uploaded_file is not None:
+        # Display the uploaded image
+        image = Image.open(uploaded_file).convert("RGB")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.image(image, caption="Uploaded Image", use_column_width=True)
+        
+        with col2:
+            st.subheader("Caption Options")
+            
+            # Perform image captioning
+            text_input = st.text_input("Enter text prefix for captioning:", "a photography of")
+            
+            if st.button("🎯 Generate Conditional Caption", use_container_width=True):
+                with st.spinner("Generating caption..."):
+                    try:
+                        inputs = processor(image, text_input, return_tensors="pt").to(device)
+                        with torch.no_grad():
+                            out = model.generate(**inputs, max_length=50)
+                        caption = processor.decode(out[0], skip_special_tokens=True)
+                        st.success("✅ Caption Generated!")
+                        st.info(f"Caption: {caption}")
+                    except Exception as e:
+                        st.error(f"Error generating caption: {str(e)}")
+
+            if st.button("📸 Generate Unconditional Caption", use_container_width=True):
+                with st.spinner("Generating caption..."):
+                    try:
+                        inputs = processor(image, return_tensors="pt").to(device)
+                        with torch.no_grad():
+                            out = model.generate(**inputs, max_length=50)
+                        caption = processor.decode(out[0], skip_special_tokens=True)
+                        st.success("✅ Caption Generated!")
+                        st.info(f"Caption: {caption}")
+                    except Exception as e:
+                        st.error(f"Error generating caption: {str(e)}")
+else:
+    st.markdown("---")
+    st.info("📝 Demo Mode - Model Not Available")
+    st.write("""
+    The model is not currently loaded. This could be because:
+    - The model directory 'blip-image-captioning-base' is not found
+    - The model files are still downloading
+    - There was an error loading the model
+    
+    To use the full app, ensure the BLIP model is properly set up.
+    """)
+    
+    # Show demo information
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("About This App")
+        st.write("""
+        This app uses the BLIP (Bootstrapping Language-Image Pre-training) 
+        model to generate captions for images.
+        """)
+    
+    with col2:
+        st.subheader("Features")
+        st.write("""
+        - Conditional Caption Generation
+        - Unconditional Caption Generation
+        - Support for JPG, JPEG, PNG formats
+        """)
