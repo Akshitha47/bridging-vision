@@ -28,8 +28,8 @@ try:
     
     if os.path.exists(MODEL_PATH) and os.path.exists(PROCESSOR_PATH):
         with st.spinner("Loading model..."):
-            processor = BlipProcessor.from_pretrained(PROCESSOR_PATH)
-            model = BlipForConditionalGeneration.from_pretrained(MODEL_PATH)
+            processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+            model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
             model = model.to(device)
             model_loaded = True
             st.success("✅ Model loaded successfully!")
