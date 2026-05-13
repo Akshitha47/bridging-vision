@@ -127,9 +127,9 @@ def run_app2():
                             with st.spinner("Generating caption..."):
                                 inputs = processor(image, return_tensors="pt").to(device)
                                 with torch.no_grad():
-<<<<<<< HEAD
-                                    out = model.generate(**inputs, max_length=50)
-=======
+
+                                   
+
                                     out = model.generate(
                                      **inputs, 
                                       max_length=50, 
@@ -138,7 +138,7 @@ def run_app2():
                                       length_penalty=1.0,
                                       temperature=0.7
                                     )
->>>>>>> deployment-branch
+
                                 caption = processor.decode(out[0], skip_special_tokens=True)
                                 st.session_state.history.append((caption, datetime.now().strftime("%H:%M:%S")))
                                 st.session_state.history = st.session_state.history[-10:]
