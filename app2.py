@@ -4,11 +4,7 @@ import os
 from PIL import Image
 
 # MUST set page config first, before any other st calls
-st.set_page_config(
-    page_title="AI Image Caption Generator",
-    page_icon="🖼️",
-    layout="wide"
-)
+
 
 st.title("🖼️ AI Image Caption Generator with Voice")
 st.write("Upload an image and get AI-generated captions with multi-language voice output")

@@ -4,7 +4,7 @@ import os
 from PIL import Image
 
 # Streamlit page config MUST be first
-st.set_page_config(page_title="AI Image Captioning", layout="wide")
+
 
 st.title("🖼️ AI Image Captioning WebApp")
 st.write("Generate captions for your images using AI")
