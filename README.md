@@ -8,5 +8,4 @@ app_file: main.py
 pinned: false
 ---
 
-# Bridging Vision and Language
-AI-Based Image Captioning with Multi-language Voice Support.
+AI app with image captioning and voice output.

@@ -1,20 +1,16 @@
 import streamlit as st
-import os
+from app import run_app1
+from app2 import run_app2
 
-# MUST be the first Streamlit command
 st.set_page_config(page_title="AI Vision & Voice Hub", layout="wide")
 
 st.sidebar.title("🚀 Navigation")
-selection = st.sidebar.radio("Go to", ["Caption Generation (App 1)", "Voice Generation (App 2)"])
-
-def run_app(file_path):
-    # This reads the file and executes it in the current context
-    with open(file_path, encoding='utf-8') as f:
-        code = f.read()
-    exec(code, globals())
+selection = st.sidebar.radio(
+    "Go to",
+    ["Caption Generation (App 1)", "Voice Generation (App 2)"]
+)
 
 if selection == "Caption Generation (App 1)":
-    run_app("app.py")
-
-elif selection == "Voice Generation (App 2)":
-    run_app("app2.py")
+    run_app1()
+else:
+    run_app2()
