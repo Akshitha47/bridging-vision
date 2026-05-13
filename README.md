@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-
-=======
 ---
 title: Bridging Vision
 emoji: 📊
@@ -11,5 +8,5 @@ app_file: main.py
 pinned: false
 ---
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
->>>>>>> faa27c5 (Deployment commit: Code only, no heavy dataset)
+# Bridging Vision and Language
+AI-Based Image Captioning with Multi-language Voice Support.

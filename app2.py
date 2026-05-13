@@ -30,16 +30,17 @@ model = None
 model_loaded = False
 
 # Try to load model
+# In app2.py - Replace your current try/except block with this:
+# Inside app2.py, find the model loading block and replace with:
 try:
     from transformers import BlipProcessor, BlipForConditionalGeneration
-    
-    if os.path.exists(MODEL_PATH) and os.path.exists(PROCESSOR_PATH):
-        with st.spinner("Loading model..."):
-            processor = BlipProcessor.from_pretrained(PROCESSOR_PATH)
-            model = BlipForConditionalGeneration.from_pretrained(MODEL_PATH)
-            model = model.to(device)
-            model_loaded = True
-            st.success("✅ Model loaded successfully!")
+    with st.spinner("Loading AI Model..."):
+        MODEL_ID = "Salesforce/blip-image-captioning-base"
+        processor = BlipProcessor.from_pretrained(MODEL_ID)
+        model = BlipForConditionalGeneration.from_pretrained(MODEL_ID)
+        model = model.to(device)
+        model_loaded = True
+        st.success("✅ Model loaded successfully!")
 except Exception as e:
     st.warning(f"⚠️ Model loading issue: {str(e)}")
     model_loaded = False
